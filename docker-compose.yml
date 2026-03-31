@@ -1841,7 +1841,7 @@ services:
     build:
       context: ./mcp-servers/rust/fast-test-server
       dockerfile: Containerfile
-    image: mcpgateway/fast-test-server:latest
+    image: mcpgateway/fast-test-server:nodelay
     restart: unless-stopped
     networks: [mcpnet]
     ports:

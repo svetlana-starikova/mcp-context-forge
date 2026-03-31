@@ -1202,6 +1202,83 @@ class GatewayService(BaseService):  # pylint: disable=too-many-instance-attribut
 
                 invalidate_passthrough_header_caches()
 
+                # Structured logging: Cache invalidation for passthrough headers
+                structured_logger.log(
+                    level="INFO",
+                    message="Invalidated passthrough headers cache for new gateway",
+                    event_type="cache_invalidated",
+                    component="gateway_service",
+                    user_id=created_by,
+                    user_email=owner_email,
+                    team_id=team_id,
+                    resource_type="gateway",
+                    resource_id=str(db_gateway.id),
+                    custom_fields={
+                        "cache_type": "passthrough_headers",
+                        "gateway_name": db_gateway.name,
+                        "gateway_url": normalized_url,
+                    },
+                )
+
+            # Invalidate registry cache and tool lookup cache for newly registered gateway tools/resources/prompts
+            # This ensures that subsequent list_tools and invoke_tool calls see the newly discovered items
+            cache = _get_registry_cache()
+            cache_invalidations = []
+            if tools:
+                await cache.invalidate_tools()
+                cache_invalidations.append("tools")
+            if db_resources:
+                await cache.invalidate_resources()
+                cache_invalidations.append("resources")
+            if db_prompts:
+                await cache.invalidate_prompts()
+                cache_invalidations.append("prompts")
+
+            # Invalidate tool lookup cache for this gateway
+            tool_lookup_cache = _get_tool_lookup_cache()
+            await tool_lookup_cache.invalidate_gateway(str(db_gateway.id))
+
+            # Structured logging: Cache invalidation for registry and tool lookup
+            if cache_invalidations:
+                structured_logger.log(
+                    level="INFO",
+                    message="Invalidated registry cache for newly registered gateway",
+                    event_type="cache_invalidated",
+                    component="gateway_service",
+                    user_id=created_by,
+                    user_email=owner_email,
+                    team_id=team_id,
+                    resource_type="gateway",
+                    resource_id=str(db_gateway.id),
+                    custom_fields={
+                        "cache_type": "registry",
+                        "invalidated_caches": cache_invalidations,
+                        "gateway_name": db_gateway.name,
+                        "gateway_url": normalized_url,
+                        "tools_count": len(tools),
+                        "resources_count": len(db_resources),
+                        "prompts_count": len(db_prompts),
+                    },
+                )
+
+            structured_logger.log(
+                level="INFO",
+                message="Invalidated tool lookup cache for newly registered gateway",
+                event_type="cache_invalidated",
+                component="gateway_service",
+                user_id=created_by,
+                user_email=owner_email,
+                team_id=team_id,
+                resource_type="gateway",
+                resource_id=str(db_gateway.id),
+                custom_fields={
+                    "cache_type": "tool_lookup",
+                    "gateway_id": str(db_gateway.id),
+                    "gateway_name": db_gateway.name,
+                    "gateway_url": normalized_url,
+                },
+            )
+
             logger.info(f"Registered gateway: {SecurityValidator.sanitize_log_message(gateway.name)}")
 
             # Structured logging: Audit trail for gateway creation

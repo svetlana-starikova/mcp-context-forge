@@ -36,6 +36,7 @@ use rustls::{
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
+use socket2;
 use std::{
     collections::{HashMap, hash_map::DefaultHasher},
     convert::Infallible,
@@ -1292,10 +1293,18 @@ async fn serve_http(
     shutdown_after: Option<Duration>,
 ) -> Result<(), RuntimeError> {
     info!("starting Rust MCP runtime on http://{addr}");
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+
+    //let listener = tokio::net::TcpListener::bind(addr).await?;
+    // Bind and serve
+    let listener = std::net::TcpListener::bind(&addr)?;
+    listener.set_nonblocking(true)?;
+    let socket = socket2::Socket::from(listener);
+    socket.set_tcp_nodelay(true)?;
+    let tcp_listener = tokio::net::TcpListener::from_std(socket.into())?;
+
     if let Some(delay) = shutdown_after {
         axum::serve(
-            listener,
+            tcp_listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
         )
         .with_graceful_shutdown(async move {
@@ -1304,7 +1313,7 @@ async fn serve_http(
         .await?;
     } else {
         axum::serve(
-            listener,
+            tcp_listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
         )
         .await?;
