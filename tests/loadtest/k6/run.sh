@@ -62,6 +62,7 @@ export K6_MCP_HOST="${MCP_HOST}"
 export K6_MCP_SERVER_ID="${MCP_SERVER_ID}"
 export K6_JWT_SECRET_KEY="${JWT_SECRET}"
 
+echo set K6_WEB_DASHBOARD=true for dashboard
 k6 run \
   --vus "${VUS}" \
   --duration "${DURATION}" \

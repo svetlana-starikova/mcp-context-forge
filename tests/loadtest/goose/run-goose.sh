@@ -1,14 +1,14 @@
 #!/bin/bash
 #
-# MCP Tools Benchmark with Rust/Tokio - Quick Start Script
+# MCP Tools Benchmark with Goose Load Testing Framework - Quick Start Script
 #
 # Usage:
-#   ./run.sh [quick|standard|heavy]
+#   ./run-goose.sh [quick|standard|heavy]
 #
 # Examples:
-#   ./run.sh quick     # 10 users, 10s
-#   ./run.sh standard  # 50 users, 30s (default)
-#   ./run.sh heavy     # 125 users, 60s
+#   ./run-goose.sh quick     # 10 users, 10s
+#   ./run-goose.sh standard  # 50 users, 30s (default)
+#   ./run-goose.sh heavy     # 125 users, 60s
 #
 # Environment Variables:
 #   MCP_BENCHMARK_SERVER_ID  - Virtual server UUID (required)
@@ -19,7 +19,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "${SCRIPT_DIR}/../../../tools_rust/mcp-benchmark" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/../../../tools_rust/mcp-benchmark-goose" && pwd)"
 PROFILE="${1:-standard}"
 
 # Configuration (check MCP_BENCHMARK_* vars first, then K6_* vars for consistency, then defaults)
@@ -49,7 +49,7 @@ case "${PROFILE}" in
 esac
 
 echo "========================================"
-echo "  MCP Tools Benchmark (Rust/Tokio)"
+echo "  MCP Tools Benchmark (Goose/Rust)"
 echo "========================================"
 echo "  Profile:    ${PROFILE}"
 echo "  Users:      ${USERS}"
@@ -64,7 +64,7 @@ export MCP_BENCHMARK_SERVER_ID="${MCP_SERVER_ID}"
 export JWT_SECRET_KEY="${JWT_SECRET}"
 
 # Build if needed
-echo "Building mcp-benchmark..."
+echo "Building mcp-benchmark-goose..."
 cd "${PROJECT_DIR}"
 cargo build --release --quiet 2>/dev/null || cargo build --release
 
@@ -72,8 +72,7 @@ echo ""
 echo "Running benchmark..."
 echo ""
 
-# Run the benchmark
-"${PROJECT_DIR}/target/release/mcp-benchmark" \
-  --profile "${PROFILE}" \
+# Run the benchmark with goose options
+"${PROJECT_DIR}/target/release/mcp-benchmark-goose" \
   --users "${USERS}" \
-  --run-time "${DURATION}"
+  --run-time "${DURATION}s"
