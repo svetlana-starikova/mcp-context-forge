@@ -330,11 +330,11 @@ function mcpRequest(
   params?: Record<string, unknown>,
   sessionId?: string | null,
   targetServerId?: string
-): { result: any | null; sessionId: string | null; success: boolean; duration: number } {
+): { result: any | null; sessionId: string | null; success: boolean; duration: number; rawBody?: string } {
   const token = getToken();
   const idBytes = crypto.randomBytes(16);
   const id = Array.from(idBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-  
+
   const payload: any = {
     jsonrpc: '2.0',
     id: id,
@@ -347,6 +347,7 @@ function mcpRequest(
   const headers: any = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   };
   if (sessionId) {
     headers['Mcp-Session-Id'] = sessionId;
@@ -368,15 +369,15 @@ function mcpRequest(
   }
 
   if (resp.status !== 200) {
-    return { result: null, sessionId: newSessionId, success: false, duration };
+    return { result: null, sessionId: newSessionId, success: false, duration, rawBody: resp.body };
   }
 
   const data = resp.json();
   if (data.error) {
-    return { result: null, sessionId: newSessionId, success: false, duration };
+    return { result: null, sessionId: newSessionId, success: false, duration, rawBody: resp.body };
   }
 
-  return { result: data.result || null, sessionId: newSessionId, success: true, duration };
+  return { result: data.result || null, sessionId: newSessionId, success: true, duration, rawBody: resp.body };
 }
 
 // =============================================================================
@@ -416,7 +417,7 @@ export default function (data: { toolNames: string[]; serverId: string }) {
 
     const args = getDefaultToolArgs(toolName);
 
-    const { success, duration } = mcpRequest('tools/call', {
+    const { success, duration, rawBody } = mcpRequest('tools/call', {
       name: toolName,
       arguments: args,
     }, vuSessionId, serverId);
